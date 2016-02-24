@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="00697729-a23d-4068-bf2a-a44a92d421f2" name="azure" url="http://waws-prod-db3-043.ftp.azurewebsites.windows.net">
+        <fileTransfer host="waws-prod-db3-043.ftp.azurewebsites.windows.net" port="21" password="dffcdfe7dfdddfcbdfd8dfcfdf9bdf98df99df8b" username="rabbitmqgroep3\groep3">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
