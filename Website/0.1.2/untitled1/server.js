@@ -34,6 +34,63 @@ app.use(function (req, res, next) {
     next(err);
 });
 
+//database connectie
+var Connection = require('tedious').Connection;
+var config = {
+    userName: 'userread',
+    password: 'VMware123!',
+    server: 'sqlgroep3.database.windows.net',
+    // If you are on Microsoft Azure, you need this:
+    options: {encrypt: true, database: 'SQLGroep3'}
+};
+var connection = new Connection(config);
+connection.on('connect', function(err) {
+    // If no error, then good to proceed.
+    console.log("Connected");
+});
+var Request = require('tedious').Request;
+var TYPES = require('tedious').TYPES;
+
+//declaratie huisid
+var huisId;
+//database login nakijken
+function executeStatement(email, passwd) {
+    request = new Request("SELECT [HuisID] FROM [dbo].[Users] WHERE [Email] ='"+ email+ "' AND [Passwd] ='"+ passwd+"'", function(err) {
+        if (err) {
+            console.log(err);}
+    });
+    var result = "";
+    request.on('row', function(columns) {
+        columns.forEach(function(column) {
+            if (column.value === null) {
+                console.log('NULL');
+            } else {
+                result+= column.value;
+            }
+        });
+        huisId = result;
+
+        app.io.emit('loginReply', huisId);
+        result ="";
+    });
+
+    request.on('done', function(rowCount, more) {
+        console.log(rowCount + ' rows returned');
+    });
+    connection.execSql(request);
+}
+
+//login
+app.io.on('connection', function (socket) {
+    socket.on('login', function (msg) {
+        console.log(msg);
+        var array = msg.split("/");
+        var email = array[0];
+        var passwd = array[1];
+        executeStatement(email, passwd);
+    })
+})
+
 //amqp receive
 var amqpreceive = require('amqplib/callback_api');
 
@@ -44,15 +101,14 @@ amqpreceive.connect('amqp://groep3:abc123!@137.135.132.202', function (err, conn
         ch.assertExchange(ex, 'fanout', {durable: false});
 
         ch.assertQueue('', {exclusive: true}, function (err, q) {
-            // console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", q.queue);
             ch.bindQueue(q.queue, ex, '');
 
             ch.consume(q.queue, function (msg) {
-                //console.log(" [x] %s", msg.content.toString());
                 //socket io
                 var string = msg.content.toString();
+                //console.log(string);
                 var array = string.split("/");
-                if (array[0] == "1") {
+                if (array[0] == huisId) {
                     app.io.emit('verbruik', string);
                 }
             }, {noAck: true});
@@ -66,9 +122,9 @@ var when = require('when');
 
 app.io.on('connection', function (socket) {
     socket.on('send', function (msg) {
-        console.log(msg);
+        console.log(huisId);
 
-        var key = "1";
+        var key = huisId;
         var message = key + "/" + msg;
 
         console.log(message);
@@ -88,50 +144,6 @@ app.io.on('connection', function (socket) {
         }).then(null, console.log);
     })
 })
-
-
-//database connectie
-var Connection = require('tedious').Connection;
-var config = {
-    userName: 'userread',
-    password: 'VMware123!',
-    server: 'sqlgroep3.database.windows.net',
-    // If you are on Microsoft Azure, you need this:
-    options: {encrypt: true, database: 'SQLGroep3'}
-};
-var connection = new Connection(config);
-connection.on('connect', function(err) {
-    // If no error, then good to proceed.
-    console.log("Connected");
-    executeStatement();
-});
-
-var Request = require('tedious').Request;
-var TYPES = require('tedious').TYPES;
-
-function executeStatement() {
-    request = new Request("SELECT TOP 10 [UserID],[Achternaam],[Voornaam],[Adres],[Gemeente],[Land],[HuisID],[Passwd],[Email] FROM [dbo].[Users]", function(err) {
-        if (err) {
-            console.log(err);}
-    });
-    var result = "";
-    request.on('row', function(columns) {
-        columns.forEach(function(column) {
-            if (column.value === null) {
-                console.log('NULL');
-            } else {
-                result+= column.value + " ";
-            }
-        });
-        console.log(result);
-        result ="";
-    });
-
-    request.on('done', function(rowCount, more) {
-        console.log(rowCount + ' rows returned');
-    });
-    connection.execSql(request);
-}
 
 // error handlers
 

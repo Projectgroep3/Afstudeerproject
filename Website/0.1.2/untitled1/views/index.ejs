@@ -22,6 +22,19 @@
         var socket = io();
         var heart = false;
         var verbruik;
+        //startscript bij laden
+        $(document).ready(function () {
+            //login laten zien bij opstarten
+            $("#status").hide();
+            //
+            write('#Vaatwasmachine', "/");
+            write('#Lamp', "/");
+            write('#Pv', "/");
+            write('#Totaal', "/");
+            write('#Baseload', "/");
+            $("#connectie").hide();
+            $("#table").hide();
+        });
         //msg ontvangen via socket.io
         socket.on('verbruik', function (msg) {
             heart = true;
@@ -47,18 +60,6 @@
         });
         //msg versturen via socket.io
         function verstuur(a) {
-
-            switch (a) {
-                case "Vaatwasmachine":
-                    send(a);
-                    break;
-                case "Lamp":
-                    send(a);
-                    break;
-            }
-        }
-
-        function send(a) {
             var status = $("#" + a + "Status").text();
             if (status == "AAN") {
                 socket.emit("send", a + "/Uit");
@@ -91,15 +92,23 @@
                 $('#kleur').css('backgroundColor', '#ffb3b3');
                 //$('#testing').animate({'backgroundColor','#ffb3b3'},'slow');
             }
-            else if (verbruik <0){
+            else if (verbruik < 0) {
                 $('#kleur').css('backgroundColor', '#aaff80');
                 // $('#testing').animate({'backgroundColor', '#aaff80'},'slow');
             }
         }
-        //connectie nakijken met devices
-        $(document).ready(function () {
-            //$("#connectie").hide();
-            //$("#loading").show();
+        //inloggen
+        function login() {
+            var a = document.getElementById('inputEmail').value;
+            var b = document.getElementById('inputPassword').value;
+            socket.emit("login", a + "/" + b);
+        }
+        //login reply
+        socket.on('loginReply', function (msg) {
+            $("#huis").append(msg);
+            $("#status").show();
+            $("#login").hide();
+            //connectie nakijken na login
             setInterval(function () {
                 $("#table").hide();
                 if (heart == true) {
@@ -121,10 +130,11 @@
                     $("#table").show();
                     $("#VaatwasmachineButton").hide();
                     $("#LampButton").hide();
-                }
-            }, 3200);
 
+                    };
+            }, 3200);
         });
+
     </script>
 
     <!-- Custom styles for this template -->
@@ -160,76 +170,96 @@
     <!-- Main jumbotron for a primary marketing message or call to action -->
     <div class="jumbotron">
         <h1>Groep 3</h1>
-        <p>Als afstudeerproject hebben we gekozen voor een migratie naar Microsoft Azure. De huizen sturen hun energieverbruik en opgewekte energie door
-        naar Microsoft Azure. Hier wordt het opgeslagen in een databank en realtime naar de website gestuurd.</p>
+        <p>Als afstudeerproject hebben we gekozen voor een migratie naar Microsoft Azure. De huizen sturen hun
+            energieverbruik en opgewekte energie door
+            naar Microsoft Azure. Hier wordt het opgeslagen in een databank en realtime naar de website gestuurd.</p>
     </div>
 
-    <div class="page-header">
-        <h1>Verbruik huis 1</h1>
-        <p id="connectie" style="color: #880000" hidden="true"><b>Connectie verloren met huis!!!</b></p>
-    </div>
+    <div id="login">
+        <div class="row">
+            <div class="col-md-4">
 
-    <div class="row">
-        <div class="col-md-6">
-            <div id="loading">
-                <img src="https://retchhh.files.wordpress.com/2015/03/loading2.gif" width="30%">
-            </div>
-            <div id="table" hidden>
-                <table class="table table-striped">
-                    <thead>
-                    <tr>
-                        <th>Device</th>
-                        <th>Status</th>
-                        <th>Verbruik(W)</th>
-                        <th>Aan/Uit</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Vaatwasmachine</td>
-                        <td id="VaatwasmachineStatus">UIT</td>
-                        <td id="VaatwasmachineVerbruik">0</td>
-                        <td>
-                            <button id="VaatwasmachineButton" type="button" onclick="verstuur('Vaatwasmachine')"
-                                    class="btn btn-xs btn-success">AANZETTEN
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Lamp</td>
-                        <td id="LampStatus">UIT</td>
-                        <td id="LampVerbruik">0</td>
-                        <td>
-                            <button id="LampButton" type="button" onclick="verstuur('Lamp')"
-                                    class="btn btn-xs btn-success">AANZETTEN
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Baseload</td>
-                        <td id="BaseloadStatus">UIT</td>
-                        <td id="BaseloadVerbruik">0</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>Zonnepaneel</td>
-                        <td id="PvStatus">UIT</td>
-                        <td id="PvVerbruik">0</td>
-                        <td></td>
-                    </tr>
-                    <tr id="kleur">
-                        <td><b>Totaal</b></td>
-                        <td></td>
-                        <td id="TotaalVerbruik">0</td>
-                        <td></td>
-                    </tr>
-                    </tbody>
-                </table>
+                <h2 class="form-signin-heading">Gelieve in te loggen</h2>
+                <label for="inputEmail" class="sr-only">Email address</label>
+                <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
+                <br/>
+                <label for="inputPassword" class="sr-only">Password</label>
+                <input type="password" id="inputPassword" class="form-control" placeholder="Wachtwoord" required>
+                <br/>
+                <button class="btn btn-lg btn-primary btn-block" onclick="login()">Inloggen</button>
+                <br/><br/>
             </div>
         </div>
     </div>
 
-</div> <!-- /container -->
+    <div id="status">
+        <div class="page-header">
+            <h1 id="huis">Verbruik huis </h1>
+            <p id="connectie" style="color: #880000" hidden="true"><b>Connectie verloren met huis!!!</b></p>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div id="loading">
+                    <img src="https://retchhh.files.wordpress.com/2015/03/loading2.gif" width="30%">
+                </div>
+                <div id="table" hidden>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>Status</th>
+                            <th>Verbruik(W)</th>
+                            <th>Aan/Uit</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Vaatwasmachine</td>
+                            <td id="VaatwasmachineStatus">UIT</td>
+                            <td id="VaatwasmachineVerbruik">0</td>
+                            <td>
+                                <button id="VaatwasmachineButton" type="button" onclick="verstuur('Vaatwasmachine')"
+                                        class="btn btn-xs btn-success">AANZETTEN
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Lamp</td>
+                            <td id="LampStatus">UIT</td>
+                            <td id="LampVerbruik">0</td>
+                            <td>
+                                <button id="LampButton" type="button" onclick="verstuur('Lamp')"
+                                        class="btn btn-xs btn-success">AANZETTEN
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Baseload</td>
+                            <td id="BaseloadStatus">UIT</td>
+                            <td id="BaseloadVerbruik">0</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Zonnepaneel</td>
+                            <td id="PvStatus">UIT</td>
+                            <td id="PvVerbruik">0</td>
+                            <td></td>
+                        </tr>
+                        <tr id="kleur">
+                            <td><b>Totaal</b></td>
+                            <td></td>
+                            <td id="TotaalVerbruik">0</td>
+                            <td></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div><!-- /container -->
 
 
 <!-- Bootstrap core JavaScript
@@ -238,8 +268,10 @@
 <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
 <script src="../../dist/js/bootstrap.min.js"></script>
 <script src="../../assets/js/docs.min.js"></script>
+
 <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
 <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
-<p align="center">Dit project is gemaakt door Dimitri Kozakiewiez, Matthias Deceuster, Thomas Sneijders, Ziggy De Smet, Niels Schoeters en Jonas Govaerts.</p>
+<p align="center">Dit project is gemaakt door Dimitri Kozakiewiez, Matthias Deceuster, Thomas Sneijders, Ziggy De Smet,
+    Niels Schoeters en Jonas Govaerts.</p>
 </body>
 </html>
